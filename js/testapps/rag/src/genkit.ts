@@ -24,13 +24,10 @@ import {
   vertexAI,
 } from '@genkit-ai/vertexai';
 import { genkit } from 'genkit';
-import { logger } from 'genkit/logging';
 import { chroma } from 'genkitx-chromadb';
 import { langchain } from 'genkitx-langchain';
 import { pinecone } from 'genkitx-pinecone';
 import { GoogleAuth, IdTokenClient } from 'google-auth-library';
-
-logger.setLogLevel('debug')
 
 const auth = new GoogleAuth();
 let authClient: IdTokenClient | undefined = undefined;
@@ -127,35 +124,3 @@ export const ai = genkit({
   ],
   model: gemini15Flash,
 });
-
-const test = ai.defineStreamingFlow('test', async (input, streamingCallback) => {
-  if (streamingCallback) {
-    for (let i = 0; i < 10; i++) {
-      streamingCallback(i);
-      await new Promise((resolve) => {
-        setTimeout(resolve, 200);
-      });
-    }
-  }
-  return 'hi';
-});
-
-const throwy = ai.defineStreamingFlow('throwy', async (input, streamingCallback) => {
-  if (streamingCallback) {
-    for (let i = 0; i < 10; i++) {
-      streamingCallback(i);
-      await new Promise((resolve) => {
-        setTimeout(resolve, 200);
-      });
-      if (i === 5) {
-        throw new Error('oops');
-      }
-    }
-  }
-  return 'hi';
-});
-
-
-ai.startFlowServer({
-  flows: [test, throwy]
-})
