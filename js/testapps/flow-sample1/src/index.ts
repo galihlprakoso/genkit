@@ -16,8 +16,7 @@
 
 import { genkit, run, z } from 'genkit';
 
-const ai = genkit({
-});
+const ai = genkit({});
 
 /**
  * To run this flow;
@@ -201,6 +200,5 @@ function generateString(length: number) {
   }
   return str.substring(0, length);
 }
-
 
 ai.startFlowServer();

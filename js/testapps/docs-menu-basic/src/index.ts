@@ -43,5 +43,5 @@ export const menuSuggestionFlow = ai.defineFlow(
 );
 
 ai.startFlowServer({
-  flows: [menuSuggestionFlow]
+  flows: [menuSuggestionFlow],
 });

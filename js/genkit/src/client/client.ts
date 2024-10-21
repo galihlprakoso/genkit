@@ -134,7 +134,9 @@ async function __flowRunEnvelope({
       } else if (chunk.hasOwnProperty('result')) {
         return chunk.result;
       } else if (chunk.hasOwnProperty('error')) {
-        throw new Error(`${chunk.error.status}: ${chunk.error.message}\n${chunk.error.details}`);
+        throw new Error(
+          `${chunk.error.status}: ${chunk.error.message}\n${chunk.error.details}`
+        );
       } else {
         throw new Error('unkown chunk format: ' + JSON.stringify(chunk));
       }
