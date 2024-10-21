@@ -14,23 +14,43 @@
  * limitations under the License.
  */
 
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  it,
+  jest,
+} from '@jest/globals';
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { generate, Genkit, genkit, run, z } from 'genkit';
+import { Genkit, generate, genkit, run, z } from 'genkit';
 import { defineModel } from 'genkit/model';
 import { runWithRegistry } from 'genkit/registry';
 import { appendSpan } from 'genkit/tracing';
 import assert from 'node:assert';
-import { after, before, beforeEach, describe, it } from 'node:test';
 import {
   __forceFlushSpansForTesting,
   __getSpanExporterForTesting,
 } from '../src/gcpOpenTelemetry.js';
 import { enableGoogleCloudTelemetry } from '../src/index.js';
 
+jest.mock('../src/auth.js', () => {
+  const original = jest.requireActual('../src/auth.js');
+  return {
+    ...(original || {}),
+    functionToMock: jest.fn().mockImplementation(() => {
+      return Promise.resolve({
+        projectId: 'test',
+        serviceAccountEmail: 'test@test.com',
+      });
+    }),
+  };
+});
+
 describe('GoogleCloudTracing', () => {
   let ai: Genkit;
 
-  before(async () => {
+  beforeAll(async () => {
     process.env.GENKIT_ENV = 'dev';
     await enableGoogleCloudTelemetry({
       projectId: 'test',
@@ -41,7 +61,7 @@ describe('GoogleCloudTracing', () => {
   beforeEach(async () => {
     __getSpanExporterForTesting().reset();
   });
-  after(async () => {
+  afterAll(async () => {
     await ai.stopServers();
   });
 

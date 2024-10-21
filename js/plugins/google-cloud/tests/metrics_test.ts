@@ -22,6 +22,14 @@ import {
   enableGoogleCloudTelemetry,
 } from '@genkit-ai/google-cloud';
 import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  it,
+  jest,
+} from '@jest/globals';
+import {
   DataPoint,
   Histogram,
   HistogramMetricData,
@@ -42,12 +50,24 @@ import { defineModel } from 'genkit/model';
 import { runWithRegistry } from 'genkit/registry';
 import { SPAN_TYPE_ATTR, appendSpan } from 'genkit/tracing';
 import assert from 'node:assert';
-import { after, before, beforeEach, describe, it } from 'node:test';
+
+jest.mock('../src/auth.js', () => {
+  const original = jest.requireActual('../src/auth.js');
+  return {
+    ...(original || {}),
+    functionToMock: jest.fn().mockImplementation(() => {
+      return Promise.resolve({
+        projectId: 'test',
+        serviceAccountEmail: 'test@test.com',
+      });
+    }),
+  };
+});
 
 describe('GoogleCloudMetrics', () => {
   let ai: Genkit;
 
-  before(async () => {
+  beforeAll(async () => {
     process.env.GENKIT_ENV = 'dev';
     await enableGoogleCloudTelemetry({
       projectId: 'test',
@@ -61,7 +81,7 @@ describe('GoogleCloudMetrics', () => {
     __getMetricExporterForTesting().reset();
     __getSpanExporterForTesting().reset();
   });
-  after(async () => {
+  afterAll(async () => {
     await ai.stopServers();
   });
 
@@ -110,7 +130,7 @@ describe('GoogleCloudMetrics', () => {
     assert.equal(requestCounter.attributes.source, 'ts');
     assert.equal(requestCounter.attributes.error, 'TypeError');
     assert.equal(requestCounter.attributes.status, 'failure');
-  });
+  }, 10000); //timeout
 
   it('writes feature metrics for a successful flow', async () => {
     const testFlow = createFlow(ai, 'testFlow');
@@ -153,7 +173,7 @@ describe('GoogleCloudMetrics', () => {
     assert.equal(requestCounter.attributes.source, 'ts');
     assert.equal(requestCounter.attributes.error, 'TypeError');
     assert.equal(requestCounter.attributes.status, 'failure');
-  });
+  }, 10000); //timeout
 
   it('writes action metrics for an action inside a flow', async () => {
     const testAction = createAction(ai, 'testAction');
@@ -280,7 +300,7 @@ describe('GoogleCloudMetrics', () => {
     assert.equal(requestCounter.attributes.source, 'ts');
     assert.equal(requestCounter.attributes.status, 'failure');
     assert.equal(requestCounter.attributes.error, 'TypeError');
-  });
+  }, 10000); //timeout
 
   it('writes generate metrics for a successful model action', async () => {
     const testModel = createTestModel(ai, 'testModel');
@@ -386,7 +406,7 @@ describe('GoogleCloudMetrics', () => {
     assert.equal(requestCounter.attributes.status, 'failure');
     assert.equal(requestCounter.attributes.error, 'TypeError');
     assert.ok(requestCounter.attributes.sourceVersion);
-  });
+  }, 10000); //timeout
 
   it('writes feature label to action metrics when running inside a flow', async () => {
     const testAction = createAction(ai, 'testAction');
@@ -437,7 +457,7 @@ describe('GoogleCloudMetrics', () => {
       generateRequestCounter.attributes.featureName,
       'testGenerateAction'
     );
-  });
+  }, 10000); //timeout
 
   it('writes feature label to generate metrics when running inside a flow', async () => {
     const testModel = createModel(ai, 'testModel', async () => {
@@ -568,7 +588,7 @@ describe('GoogleCloudMetrics', () => {
       ['/{testFlow,t:flow}/{sub-action,t:flowStep}', 'success'],
       ['/{testFlow,t:flow}', 'failure'],
     ]);
-  });
+  }, 10000); //timeout
 
   it('writes path metrics for a failing flow with exception in subaction', async () => {
     const flow = createFlow(ai, 'testFlow', async () => {
@@ -613,7 +633,7 @@ describe('GoogleCloudMetrics', () => {
         'failure',
       ],
     ]);
-  });
+  }, 10000); //timeout
 
   it('writes path metrics for a flow with exception in action', async () => {
     const flow = createFlow(ai, 'testFlow', async () => {
@@ -660,7 +680,7 @@ describe('GoogleCloudMetrics', () => {
       ],
       ['/{testFlow,t:flow}/{sub-action-1,t:flowStep}', 'failure'],
     ]);
-  });
+  }, 10000); //timeout
 
   it('writes path metrics for a flow with an exception in a serial action', async () => {
     const flow = createFlow(ai, 'testFlow', async () => {
@@ -701,7 +721,7 @@ describe('GoogleCloudMetrics', () => {
       ['/{testFlow,t:flow}/{sub-action-1,t:flowStep}', 'success'],
       ['/{testFlow,t:flow}/{sub-action-2,t:flowStep}', 'failure'],
     ]);
-  });
+  }, 10000); //timeout
 
   it('writes user feedback metrics', async () => {
     appendSpan(
