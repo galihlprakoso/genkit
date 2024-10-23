@@ -25,14 +25,14 @@ import {
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { Genkit, genkit, run, z } from 'genkit';
 import { GenerateResponseData } from 'genkit/model';
-import { SPAN_TYPE_ATTR, appendSpan } from 'genkit/tracing';
+import { appendSpan, SPAN_TYPE_ATTR } from 'genkit/tracing';
 import assert from 'node:assert';
 import { Writable } from 'stream';
 import {
+  enableGoogleCloudTelemetry,
   __addTransportStreamForTesting,
   __forceFlushSpansForTesting,
   __getSpanExporterForTesting,
-  enableGoogleCloudTelemetry,
 } from '../src/index.js';
 
 jest.mock('../src/auth.js', () => {
@@ -49,7 +49,6 @@ jest.mock('../src/auth.js', () => {
       return Promise.resolve({
         projectId: 'test',
         credentials: {
-          type: 'authorized_user',
           client_email: 'test@genkit.com',
           private_key: '-----BEGIN PRIVATE KEY-----',
         },

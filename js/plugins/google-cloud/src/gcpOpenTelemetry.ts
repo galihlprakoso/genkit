@@ -170,6 +170,9 @@ export class GcpOpenTelemetry {
   }
 
   private async buildMetricExporter(): Promise<PushMetricExporter> {
+    console.log(
+      `BUILD METRIC EXPORTER: ${JSON.stringify(this.config.credentials)}`
+    );
     const exporter: PushMetricExporter = this.shouldExportMetrics()
       ? new MetricExporterWrapper(
           {
@@ -222,10 +225,6 @@ class MetricExporterWrapper extends MetricExporter {
   ): void {
     super.export(metrics, (result) => {
       if (this.errorHandler && result.error) {
-        console.error(
-          `METRICS: We got that ERR ERR ${JSON.stringify(metrics, null, 2)}`
-        );
-        console.error(`METRICS: We got that ERR ERR ${JSON.stringify(result)}`);
         this.errorHandler(result.error);
       }
       resultCallback(result);

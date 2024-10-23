@@ -46,7 +46,6 @@ jest.mock('../src/auth.js', () => {
       return Promise.resolve({
         projectId: 'test',
         credentials: {
-          type: 'authorized_user',
           client_email: 'test@genkit.com',
           private_key: '-----BEGIN PRIVATE KEY-----',
         },

@@ -15,11 +15,11 @@
  */
 
 import {
+  enableGoogleCloudTelemetry,
   GcpOpenTelemetry,
   __forceFlushSpansForTesting,
   __getMetricExporterForTesting,
   __getSpanExporterForTesting,
-  enableGoogleCloudTelemetry,
 } from '@genkit-ai/google-cloud';
 import {
   afterAll,
@@ -38,7 +38,7 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { GenerateResponseData, Genkit, genkit, run, z } from 'genkit';
-import { SPAN_TYPE_ATTR, appendSpan } from 'genkit/tracing';
+import { appendSpan, SPAN_TYPE_ATTR } from 'genkit/tracing';
 import assert from 'node:assert';
 
 jest.mock('../src/auth.js', () => {
@@ -55,7 +55,6 @@ jest.mock('../src/auth.js', () => {
       return Promise.resolve({
         projectId: 'test',
         credentials: {
-          type: 'authorized_user',
           client_email: 'test@genkit.com',
           private_key: '-----BEGIN PRIVATE KEY-----',
         },
