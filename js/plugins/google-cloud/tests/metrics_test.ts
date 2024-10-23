@@ -45,10 +45,20 @@ jest.mock('../src/auth.js', () => {
   const original = jest.requireActual('../src/auth.js');
   return {
     ...(original || {}),
-    functionToMock: jest.fn().mockImplementation(() => {
+    resolveCurrentPrincipal: jest.fn().mockImplementation(() => {
       return Promise.resolve({
         projectId: 'test',
         serviceAccountEmail: 'test@test.com',
+      });
+    }),
+    credentialsFromEnvironment: jest.fn().mockImplementation(() => {
+      return Promise.resolve({
+        projectId: 'test',
+        credentials: {
+          type: 'authorized_user',
+          client_email: 'test@genkit.com',
+          private_key: '-----BEGIN PRIVATE KEY-----',
+        },
       });
     }),
   };
