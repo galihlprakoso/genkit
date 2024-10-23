@@ -138,14 +138,14 @@ export async function permissionDeniedHelpText(role: string) {
   return `Add the role '${role}' to your Service Account in the IAM & Admin page on the Google Cloud console, or use the following command:\n\ngcloud projects add-iam-policy-binding ${principal.projectId ?? '${PROJECT_ID}'} \\\n    --member=serviceAccount:${principal.serviceAccountEmail || '${SERVICE_ACCT}'} \\\n    --role=${role}`;
 }
 
-export function loggingDeniedHelpText() {
+export async function loggingDeniedHelpText() {
   return permissionDeniedHelpText('roles/logging.logWriter');
 }
 
-export function tracingDeniedHelpText() {
+export async function tracingDeniedHelpText() {
   return permissionDeniedHelpText('roles/cloudtrace.agent');
 }
 
-export function metricsDeniedHelpText() {
+export async function metricsDeniedHelpText() {
   return permissionDeniedHelpText('roles/monitoring.metricWriter');
 }
