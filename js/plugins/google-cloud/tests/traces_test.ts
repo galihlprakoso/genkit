@@ -23,9 +23,7 @@ import {
   jest,
 } from '@jest/globals';
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { Genkit, generate, genkit, run, z } from 'genkit';
-import { defineModel } from 'genkit/model';
-import { runWithRegistry } from 'genkit/registry';
+import { Genkit, genkit, run, z } from 'genkit';
 import { appendSpan } from 'genkit/tracing';
 import assert from 'node:assert';
 import {
@@ -51,6 +49,7 @@ describe('GoogleCloudTracing', () => {
   let ai: Genkit;
 
   beforeAll(async () => {
+    process.env.GCLOUD_PROJECT = 'test';
     process.env.GENKIT_ENV = 'dev';
     await enableGoogleCloudTelemetry({
       projectId: 'test',
@@ -156,33 +155,31 @@ describe('GoogleCloudTracing', () => {
   });
 
   it('adds the genkit/model label for model actions', async () => {
-    const echoModel = runWithRegistry(ai.registry, () =>
-      defineModel(
-        {
-          name: 'echoModel',
-        },
-        async (request) => {
-          return {
-            message: {
-              role: 'model',
-              content: [
-                {
-                  text:
-                    'Echo: ' +
-                    request.messages
-                      .map((m) => m.content.map((c) => c.text).join())
-                      .join(),
-                },
-              ],
-            },
-            finishReason: 'stop',
-          };
-        }
-      )
+    const echoModel = ai.defineModel(
+      {
+        name: 'echoModel',
+      },
+      async (request) => {
+        return {
+          message: {
+            role: 'model',
+            content: [
+              {
+                text:
+                  'Echo: ' +
+                  request.messages
+                    .map((m) => m.content.map((c) => c.text).join())
+                    .join(),
+              },
+            ],
+          },
+          finishReason: 'stop',
+        };
+      }
     );
     const testFlow = createFlow(ai, 'modelFlow', async () => {
       return run('runFlow', async () => {
-        generate({
+        ai.generate({
           model: echoModel,
           prompt: 'Testing model telemetry',
         });

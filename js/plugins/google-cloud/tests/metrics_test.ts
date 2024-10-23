@@ -37,17 +37,7 @@ import {
   SumMetricData,
 } from '@opentelemetry/sdk-metrics';
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import {
-  GenerateResponseData,
-  Genkit,
-  defineAction,
-  generate,
-  genkit,
-  run,
-  z,
-} from 'genkit';
-import { defineModel } from 'genkit/model';
-import { runWithRegistry } from 'genkit/registry';
+import { GenerateResponseData, Genkit, genkit, run, z } from 'genkit';
 import { SPAN_TYPE_ATTR, appendSpan } from 'genkit/tracing';
 import assert from 'node:assert';
 
@@ -68,6 +58,7 @@ describe('GoogleCloudMetrics', () => {
   let ai: Genkit;
 
   beforeAll(async () => {
+    process.env.GCLOUD_PROJECT = 'test';
     process.env.GENKIT_ENV = 'dev';
     await enableGoogleCloudTelemetry({
       projectId: 'test',
@@ -109,7 +100,7 @@ describe('GoogleCloudMetrics', () => {
     assert.equal(actionLatencyHistogram.attributes.source, 'ts');
     assert.equal(actionLatencyHistogram.attributes.status, 'success');
     assert.ok(actionLatencyHistogram.attributes.sourceVersion);
-  });
+  }, 10000); //timeout
 
   it('writes action metrics for a failing flow', async () => {
     const testFlow = createFlow(ai, 'testFlow', async () => {
@@ -175,7 +166,8 @@ describe('GoogleCloudMetrics', () => {
     assert.equal(requestCounter.attributes.status, 'failure');
   }, 10000); //timeout
 
-  it('writes action metrics for an action inside a flow', async () => {
+  // SKIPPED -- we don't allow defining arbitrary actions anymore....
+  it.skip('writes action metrics', async () => {
     const testAction = createAction(ai, 'testAction');
     const testFlow = createFlow(ai, 'testFlowWithActions', async () => {
       await Promise.all([
@@ -204,20 +196,20 @@ describe('GoogleCloudMetrics', () => {
     assert.equal(requestCounter.attributes.source, 'ts');
     assert.equal(requestCounter.attributes.status, 'success');
     assert.ok(requestCounter.attributes.sourceVersion);
+    assert.equal(requestCounter.attributes.featureName, 'testFlowWithActions');
     assert.equal(latencyHistogram.value.count, 6);
     assert.equal(latencyHistogram.attributes.name, 'testAction');
     assert.equal(latencyHistogram.attributes.source, 'ts');
     assert.equal(latencyHistogram.attributes.status, 'success');
     assert.ok(latencyHistogram.attributes.sourceVersion);
+    assert.equal(requestCounter.attributes.featureName, 'testFlowWithActions');
   });
 
   it('writes feature metrics for an action', async () => {
     const testAction = createAction(ai, 'featureAction');
 
-    await runWithRegistry(ai.registry, async () => {
-      await testAction(null);
-      await testAction(null);
-    });
+    await testAction(null);
+    await testAction(null);
 
     await getExportedSpans();
 
@@ -239,11 +231,9 @@ describe('GoogleCloudMetrics', () => {
   // after PR #1029
 
   it('writes feature metrics for generate', async () => {
-    await runWithRegistry(ai.registry, async () => {
-      const testModel = createTestModel(ai, 'helloModel');
-      await generate({ model: testModel, prompt: 'Hi' });
-      await generate({ model: testModel, prompt: 'Yo' });
-    });
+    const testModel = createTestModel(ai, 'helloModel');
+    await ai.generate({ model: testModel, prompt: 'Hi' });
+    await ai.generate({ model: testModel, prompt: 'Yo' });
 
     const spans = await getExportedSpans();
 
@@ -280,7 +270,8 @@ describe('GoogleCloudMetrics', () => {
     );
   });
 
-  it('writes action metrics for a failed action', async () => {
+  // SKIPPED -- we don't allow defining arbitrary actions anymore....
+  it.skip('writes action failure metrics', async () => {
     const testAction = createAction(ai, 'testActionWithFailure', async () => {
       const nothing: { missing?: any } = { missing: 1 };
       delete nothing.missing;
@@ -288,9 +279,7 @@ describe('GoogleCloudMetrics', () => {
     });
 
     assert.rejects(async () => {
-      return await runWithRegistry(ai.registry, async () => {
-        return testAction(null);
-      });
+      return testAction(null);
     });
     await getExportedSpans();
 
@@ -408,7 +397,8 @@ describe('GoogleCloudMetrics', () => {
     assert.ok(requestCounter.attributes.sourceVersion);
   }, 10000); //timeout
 
-  it('writes feature label to action metrics when running inside a flow', async () => {
+  // SKIPPED -- we don't allow defining arbitrary actions anymore....
+  it.skip('writes flow label to action metrics when running inside flow', async () => {
     const testAction = createAction(ai, 'testAction');
     const flow = createFlow(ai, 'flowNameLabelTestFlow', async () => {
       return await testAction(undefined);
@@ -440,9 +430,7 @@ describe('GoogleCloudMetrics', () => {
       });
     });
 
-    await runWithRegistry(ai.registry, async () => {
-      testAction(null);
-    });
+    testAction(null);
 
     await getExportedSpans();
 
@@ -482,7 +470,7 @@ describe('GoogleCloudMetrics', () => {
       };
     });
     const flow = createFlow(ai, 'testFlow', async () => {
-      return await generate({
+      return await ai.generate({
         model: testModel,
         prompt: 'test prompt',
       });
@@ -930,14 +918,11 @@ describe('GoogleCloudMetrics', () => {
     name: string,
     fn: () => Promise<void> = async () => {}
   ) {
-    return runWithRegistry(ai.registry, () =>
-      defineAction(
-        {
-          name,
-          actionType: 'custom',
-        },
-        fn
-      )
+    return ai.defineFlow(
+      {
+        name,
+      },
+      fn
     );
   }
 
@@ -948,9 +933,7 @@ describe('GoogleCloudMetrics', () => {
     name: string,
     respFn: () => Promise<GenerateResponseData>
   ) {
-    return runWithRegistry(ai.registry, () =>
-      defineModel({ name }, (req) => respFn())
-    );
+    return ai.defineModel({ name }, (req) => respFn());
   }
 
   function createTestModel(ai: Genkit, name: string) {

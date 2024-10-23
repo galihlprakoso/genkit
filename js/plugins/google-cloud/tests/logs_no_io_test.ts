@@ -23,9 +23,8 @@ import {
   jest,
 } from '@jest/globals';
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { Genkit, generate, genkit, run, z } from 'genkit';
-import { GenerateResponseData, defineModel } from 'genkit/model';
-import { runWithRegistry } from 'genkit/registry';
+import { Genkit, genkit, run, z } from 'genkit';
+import { GenerateResponseData } from 'genkit/model';
 import assert from 'node:assert';
 import { Writable } from 'stream';
 import {
@@ -59,6 +58,7 @@ describe('GoogleCloudLogs no I/O', () => {
   let ai: Genkit;
 
   beforeAll(async () => {
+    process.env.GCLOUD_PROJECT = 'test';
     process.env.GENKIT_ENV = 'dev';
     __addTransportStreamForTesting(logStream);
     await enableGoogleCloudTelemetry({
@@ -138,7 +138,7 @@ describe('GoogleCloudLogs no I/O', () => {
     const testFlow = createFlowWithInput(ai, 'testFlow', async (input) => {
       return await run('sub1', async () => {
         return await run('sub2', async () => {
-          return await generate({
+          return await ai.generate({
             model: testModel,
             prompt: `${input} prompt`,
             config: {
@@ -226,9 +226,7 @@ function createModel(
   name: string,
   respFn: () => Promise<GenerateResponseData>
 ) {
-  return runWithRegistry(genkit.registry, () =>
-    defineModel({ name }, (req) => respFn())
-  );
+  return genkit.defineModel({ name }, (req) => respFn());
 }
 
 async function waitForLogsInit(genkit: Genkit, logLines: any) {
